@@ -42,12 +42,14 @@ services:
       - TIDB_URL=jdbc:mysql://mysqldb:3306/dlms_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - TIDB_USER=root
       - TIDB_PASSWORD=root
+      - COURSE_MONGODB_URI=mongodb://mongodb:27017/dlms_mongo_db
       - MONGODB_URI=mongodb://mongodb:27017/dlms_mongo_db
       # JWT Secrets (Inject via .env or keep defaults for dev)
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
       # IPFS Keys
-      - PINATA_API_KEY=${PINATA_API_KEY}
-      - PINATA_SECRET_API_KEY=${PINATA_SECRET_API_KEY}
+      - PINATA_API_KEY=${PINATA_API_KEY:-}
+      - PINATA_SECRET_API_KEY=${PINATA_SECRET_API_KEY:-}
+      - PINATA_JWT=${PINATA_JWT:-}
       # Chatbot Connection
       - CHATBOT_SERVICE_URL=http://chatbot:8000
     depends_on:
@@ -62,21 +64,22 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      # Add other python env vars here if needed
+      - HF_TOKEN=${HF_TOKEN:-}
       
   # ---------------------------------------------------------------------------
   # 3. FRONTEND
   # ---------------------------------------------------------------------------
   
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_API_GATEWAY_URL=http://localhost:8080
     restart: on-failure
     ports:
-      - "3000:3000" # Or 5173 depending on Vite
+      - "3000:80"
     environment:
       - REACT_APP_API_GATEWAY_URL=http://localhost:8080
-      - CHOKIDAR_USEPOLLING=true # For hot reload on Windows
     depends_on:
       - backend
 
