@@ -1,3 +1,4 @@
+
 package com.dlms.backend.auth.config;
 
 import org.springframework.context.annotation.Bean;
@@ -41,6 +42,7 @@ public class SecurityConfig {
         originPatterns.add("http://127.0.0.1:*");
         originPatterns.add("https://monolithic-lms.onrender.com");
         originPatterns.add("https://*.onrender.com");
+        originPatterns.add("https://*.vercel.app");
 
         String envAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
         if (envAllowedOrigins != null && !envAllowedOrigins.isEmpty()) {
