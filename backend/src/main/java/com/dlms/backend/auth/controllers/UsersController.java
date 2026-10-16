@@ -32,8 +32,21 @@ public class UsersController {
 	}
 
 	@PostMapping("/register")
-	public boolean controllerRegisterUser(@RequestBody UsersDTO dto) {
-		return usersService.registerUser(dto);
+	public ResponseEntity<?> controllerRegisterUser(@RequestBody UsersDTO dto) {
+		if (dto.getUserName() == null || dto.getUserName().trim().isEmpty()) {
+			return ResponseEntity.badRequest().body(Map.of("error", "Username is required"));
+		}
+		if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
+			return ResponseEntity.badRequest().body(Map.of("error", "Password is required"));
+		}
+		try {
+			usersService.registerUser(dto);
+			return ResponseEntity.ok(Map.of("message", "User registered successfully", "success", true));
+		} catch (RuntimeException e) {
+			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage(), "success", false));
+		} catch (Exception e) {
+			return ResponseEntity.status(500).body(Map.of("error", "Registration failed: " + e.getMessage(), "success", false));
+		}
 	}
 
 	// Admin user management endpoints

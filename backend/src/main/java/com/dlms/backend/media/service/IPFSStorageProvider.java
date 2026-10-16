@@ -10,14 +10,19 @@ import org.springframework.util.MultiValueMap;
 import java.util.Map;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 public class IPFSStorageProvider implements StorageProvider {
 
-    @Value("${pinata.api.key}")
+    @Value("${pinata.api.key:}")
     private String pinataApiKey;
 
-    @Value("${pinata.secret.api.key}")
+    @Value("${pinata.secret.api.key:}")
     private String pinataSecretApiKey;
 
     @Value("${pinata.jwt:}")
@@ -30,6 +35,28 @@ public class IPFSStorageProvider implements StorageProvider {
 
     @Override
     public String uploadFile(MultipartFile file) throws IOException {
+        boolean hasJwt = pinataJwt != null && !pinataJwt.trim().isEmpty();
+        boolean hasLegacyKeys = pinataApiKey != null && !pinataApiKey.trim().isEmpty()
+                && pinataSecretApiKey != null && !pinataSecretApiKey.trim().isEmpty();
+
+        // Local Fallback: If no Pinata keys are configured, store file locally
+        if (!hasJwt && !hasLegacyKeys) {
+            logger.info("No Pinata credentials provided. Falling back to local disk storage for: {}", file.getOriginalFilename());
+            Path uploadDir = Paths.get("uploads").toAbsolutePath().normalize();
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+            String safeName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
+            String uniqueFilename = "local_" + UUID.randomUUID().toString().substring(0, 8) + "_" + safeName;
+            Path destination = uploadDir.resolve(uniqueFilename);
+
+            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Successfully stored local media: {} at {}", uniqueFilename, destination);
+            return uniqueFilename;
+        }
+
         logger.info("Attempting upload to Pinata. File: {}, Size: {}", file.getOriginalFilename(), file.getSize());
 
         // Prepare Headers
@@ -37,25 +64,13 @@ public class IPFSStorageProvider implements StorageProvider {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         // Auth Logic: Prefer JWT, fallback to Legacy
-        if (pinataJwt != null && !pinataJwt.isEmpty()) {
+        if (hasJwt) {
             logger.info("Using Pinata JWT for authentication.");
-            headers.set("Authorization", "Bearer " + pinataJwt);
+            headers.set("Authorization", "Bearer " + pinataJwt.trim());
         } else {
             logger.info("Using Legacy Pinata API Keys.");
-
-            if (pinataApiKey == null || pinataApiKey.isEmpty()) {
-                logger.error("Pinata API Key is MISSING or NULL");
-            } else {
-                logger.info("Pinata API Key is present (Ends with: {})",
-                        pinataApiKey.length() > 4 ? pinataApiKey.substring(pinataApiKey.length() - 4) : "***");
-            }
-
-            if (pinataSecretApiKey == null || pinataSecretApiKey.isEmpty()) {
-                logger.error("Pinata Secret Key is MISSING or NULL");
-            }
-
-            headers.set("pinata_api_key", pinataApiKey);
-            headers.set("pinata_secret_api_key", pinataSecretApiKey);
+            headers.set("pinata_api_key", pinataApiKey.trim());
+            headers.set("pinata_secret_api_key", pinataSecretApiKey.trim());
         }
 
         // Prepare Body
@@ -109,6 +124,9 @@ public class IPFSStorageProvider implements StorageProvider {
 
     @Override
     public String getAccessUrl(String cid) {
+        if (cid != null && cid.startsWith("local_")) {
+            return "http://localhost:8080/api/media/files/" + cid;
+        }
         return GATEWAY_URL + cid;
     }
 }

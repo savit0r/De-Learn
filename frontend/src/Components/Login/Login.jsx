@@ -30,7 +30,7 @@ function Login() {
     event.preventDefault();
 
     let loginDetails = {
-      userName: name,
+      userName: name.trim(),
       password: password
     };
 
@@ -80,12 +80,21 @@ function Login() {
 
         } else {
           // Invalid credentials or user not found
-          setError("Not registered. Please signup first.");
+          setError("Invalid credentials. Please check your username/email and password.");
         }
       })
       .catch(err => {
-        console.error("Error:", err);
-        setError("Not registered. Please signup first.");
+        console.error("Login Error:", err);
+        const serverError = err.response?.data?.error;
+        if (serverError) {
+          setError(serverError);
+        } else if (err.response?.status === 401) {
+          setError("Invalid username/email or password.");
+        } else if (err.message && err.message.includes("Network")) {
+          setError("Network error: Cannot reach the backend server at http://localhost:8080.");
+        } else {
+          setError("Login failed. Please verify your credentials and try again.");
+        }
       });
   };
 
@@ -99,7 +108,7 @@ function Login() {
           {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
           <form onSubmit={handleLoginSubmit} autoComplete="off">
             {/* Inputs use your state variables: */}
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Username" autoComplete="off" /><br />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Username or Email" autoComplete="off" /><br />
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Password" autoComplete="new-password" /><br />
             <button type="submit">Log In</button>
             don't have an account?  <Link to="/Signup">Signup</Link>

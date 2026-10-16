@@ -34,26 +34,34 @@ public class UsersServiceImpl implements UsersService {
 
 	@Override
 	public LoginResponse authenticate(UsersDTO dto) {
-		Optional<Users> opUsers = usersRepository.findByUserName(dto.getUserName());
+		String identifier = dto.getUserName() != null ? dto.getUserName().trim() : "";
+		Optional<Users> opUsers = usersRepository.findByUserNameIgnoreCaseOrEmailIgnoreCase(identifier, identifier);
 		if (opUsers.isPresent()) {
 			Users dbUsers = opUsers.get();
 			if (passwordEncoder.matches(dto.getPassword(), dbUsers.getPassword())) {
-				String token = jwtUtil.generateToken(dto.getUserName(), dbUsers.getRole());
+				String token = jwtUtil.generateToken(dbUsers.getUserName(), dbUsers.getRole());
 				return new LoginResponse(token, dbUsers.getRole(), dbUsers.getId(), dbUsers.getUserName(),
 						dbUsers.getEmail());
 			}
 		}
-		throw new RuntimeException("Invalid Credentials");
+		throw new RuntimeException("Invalid username/email or password");
 	}
 
 	@Override
 	public boolean registerUser(UsersDTO dto) {
-		if (usersRepository.existsByUserName(dto.getUserName())) {
-			return false;
+		String username = dto.getUserName() != null ? dto.getUserName().trim() : "";
+		String email = dto.getEmail() != null ? dto.getEmail().trim() : "";
+
+		if (usersRepository.existsByUserNameIgnoreCase(username)) {
+			throw new RuntimeException("Username '" + username + "' is already taken");
 		}
+		if (!email.isEmpty() && usersRepository.existsByEmailIgnoreCase(email)) {
+			throw new RuntimeException("Email '" + email + "' is already registered");
+		}
+
 		Users objUsers = new Users();
-		objUsers.setUserName(dto.getUserName());
-		objUsers.setEmail(dto.getEmail());
+		objUsers.setUserName(username);
+		objUsers.setEmail(email);
 		// Set default role to STUDENT if not provided
 		objUsers.setRole(dto.getRole() != null && !dto.getRole().isEmpty()
 				? dto.getRole()

@@ -48,4 +48,6 @@ Thumbs.db
 *.log
 tmp/
 coverage/
+uploads/
+backend/uploads/
 

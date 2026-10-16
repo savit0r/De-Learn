@@ -9,5 +9,11 @@ import com.dlms.backend.auth.entity.Users;
 public interface UsersRepository extends JpaRepository<Users, Long> {
     Optional<Users> findByUserName(String userName);
 
+    Optional<Users> findByUserNameIgnoreCaseOrEmailIgnoreCase(String userName, String email);
+
+    boolean existsByUserNameIgnoreCase(String userName);
+
+    boolean existsByEmailIgnoreCase(String email);
+
     boolean existsByUserName(String userName);
 }

@@ -29,9 +29,9 @@ function Signup() {
     }
 
     const signupData = {
-      userName: name,
+      userName: name.trim(),
       password: password,
-      email: email
+      email: email.trim()
     };
 
     // --- Backend API Call ---
@@ -40,18 +40,21 @@ function Signup() {
       const response = await api.post('/api/auth/register', signupData);
 
       if (response.status === 200 || response.status === 201) {
-        setSuccess("Account created successfully! Redirecting...");
+        setSuccess("Account created successfully! Redirecting to login...");
         setTimeout(() => {
           navigate("/login");
-        }, 2000);
+        }, 1500);
       }
-
-      // Navigate to the dashboard or login page
-      navigate('/login');
-
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'An unknown error occurred during signup.');
+      console.error("Signup error:", err);
+      const serverMsg = err.response?.data?.error || err.response?.data?.message;
+      if (serverMsg) {
+        setError(serverMsg);
+      } else if (err.message && err.message.includes("Network")) {
+        setError("Network Error: Cannot connect to backend server at http://localhost:8080.");
+      } else {
+        setError(err.message || 'An unknown error occurred during signup.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -64,15 +67,15 @@ function Signup() {
 
         <form onSubmit={handleSignupSubmit} autoComplete="off">
 
-          {/* Name Input */}
+          {/* Name / Username Input */}
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
+            <label htmlFor="name">Username / Full Name</label>
             <input
               type="text"
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              required placeholder='Your Name..'
+              required placeholder='Choose a username...'
               autoComplete="off"
             />
           </div>
@@ -103,8 +106,9 @@ function Signup() {
             />
           </div>
 
-          {/* Error Feedback */}
-          {error && <p className="error-message">{error}</p>}
+          {/* Feedback */}
+          {success && <p className="success-message" style={{ color: '#4caf50', textAlign: 'center', marginBottom: '1rem', fontWeight: 'bold' }}>{success}</p>}
+          {error && <p className="error-message" style={{ color: '#f44336', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
 
           {/* Submission Button */}
           <button type="submit" disabled={isLoading}>

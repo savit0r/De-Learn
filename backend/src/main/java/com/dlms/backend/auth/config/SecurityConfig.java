@@ -35,22 +35,23 @@ public class SecurityConfig {
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
 
-        // Get allowed origins from environment variable or default to local + render
-        // frontend
-        String envAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
-        java.util.List<String> origins = new java.util.ArrayList<>();
-        origins.add("http://localhost:3000");
-        origins.add("https://monolithic-lms.onrender.com");
+        // Allow localhost and local IP on any port (3000, 5173, 5174, etc.)
+        java.util.List<String> originPatterns = new java.util.ArrayList<>();
+        originPatterns.add("http://localhost:*");
+        originPatterns.add("http://127.0.0.1:*");
+        originPatterns.add("https://monolithic-lms.onrender.com");
+        originPatterns.add("https://*.onrender.com");
 
+        String envAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
         if (envAllowedOrigins != null && !envAllowedOrigins.isEmpty()) {
             String[] envOrigins = envAllowedOrigins.split(",");
             for (String origin : envOrigins) {
-                origins.add(origin.trim());
+                originPatterns.add(origin.trim());
             }
         }
 
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOriginPatterns(originPatterns);
+        configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(java.util.Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 

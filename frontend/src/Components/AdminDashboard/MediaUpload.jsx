@@ -32,17 +32,19 @@ const MediaUpload = () => {
                 throw new Error("No authentication token found. Please login.");
             }
 
+            const role = localStorage.getItem('role') || 'ADMIN';
             // Using the Gateway URL (Relative path for proxy/consistency)
             const response = await api.post('/api/media/upload', formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'X-User-Role': role
                 }
             });
 
             // Axios throws on 4xx/5xx, so we can assume success if we reach here
             setResult(response.data);
         } catch (err) {
-            const errMsg = err.response?.data?.message || err.message || "Upload failed";
+            const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Upload failed";
             setError(errMsg);
         } finally {
             setUploading(false);

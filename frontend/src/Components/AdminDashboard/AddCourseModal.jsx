@@ -178,7 +178,8 @@ export default function AddCourseModal({ open, onClose, onCourseAdded, courseToE
             const failModules = [...modules];
             failModules[mIndex].lessons[lIndex].uploadStatus = 'error';
             setModules(failModules);
-            alert("Failed to upload file. Please try again.");
+            const serverMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+            alert(`Failed to upload file: ${serverMsg}`);
         }
     };
 
